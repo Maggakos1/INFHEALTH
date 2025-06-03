@@ -1,64 +1,56 @@
-local player = game:GetService("Players").LocalPlayer
-local noClipEnabled = false
+-- Roblox ESP Script with Player Names (Auto-Reopen on Death)
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local espColor = Color3.new(1, 0, 0) -- Red
 
--- Function to create the NoClip GUI
-local function createNoClipGUI(character)
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- GUI Setup
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "NoClipGUI"
-    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+local function createESP(target)
+    if not target.Character then return end
 
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Name = "NoClipToggle"
-    ToggleButton.Size = UDim2.new(0, 150, 0, 40)
-    ToggleButton.Position = UDim2.new(0, 10, 0, 60) -- Below Auto-Heal button
-    ToggleButton.Text = "NO CLIP: OFF"
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.Font = Enum.Font.SourceSansBold
-    ToggleButton.TextSize = 16
-    ToggleButton.Parent = ScreenGui
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = espColor
+    highlight.OutlineColor = espColor
+    highlight.Parent = target.Character
 
-    -- Toggle Function
-    ToggleButton.MouseButton1Click:Connect(function()
-        noClipEnabled = not noClipEnabled
-        if noClipEnabled then
-            ToggleButton.Text = "NO CLIP: ON"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-            -- Disable collision for all parts
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        else
-            ToggleButton.Text = "NO CLIP: OFF"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-            -- Re-enable collision
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Name"
+    billboard.Adornee = target.Character:WaitForChild("Head")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = target.Character
 
-    -- Reset NoClip on death (prevents glitches)
-    humanoid.Died:Connect(function()
-        if noClipEnabled then
-            noClipEnabled = false
-            -- The GUI will be recreated automatically on respawn
-        end
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Text = target.Name
+    nameLabel.TextColor3 = espColor
+    nameLabel.TextSize = 18
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.Parent = billboard
+
+    target.CharacterAdded:Connect(function()
+        createESP(target)
     end)
 end
 
--- Initial setup (works on first spawn)
-local character = player.Character or player.CharacterAdded:Wait()
-createNoClipGUI(character)
+Players.PlayerAdded:Connect(function(target)
+    target.CharacterAdded:Connect(function()
+        createESP(target)
+    end)
+end)
 
--- Recreate GUI on respawn
-player.CharacterAdded:Connect(function(newCharacter)
-    createNoClipGUI(newCharacter)
+for _, target in ipairs(Players:GetPlayers()) do
+    if target ~= player then
+        createESP(target)
+    end
+end
+
+-- Auto-reopen on death
+player.CharacterAdded:Connect(function()
+    wait(1)
+    for _, target in ipairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            createESP(target)
+        end
+    end
 end)
