@@ -1,57 +1,56 @@
+-- Roblox ESP Script with Player Names (Auto-Reopen on Death)
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local espColor = Color3.new(1, 0, 0) -- Red
 
-local localPlayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local function createESP(target)
+    if not target.Character then return end
 
--- Table to store ESP objects
-local espBoxes = {}
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = espColor
+    highlight.OutlineColor = espColor
+    highlight.Parent = target.Character
 
--- Function to create Billboard GUI over a character
-local function createESP(player)
-	if player == localPlayer then return end
-	if espBoxes[player] then return end
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Name"
+    billboard.Adornee = target.Character:WaitForChild("Head")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = target.Character
 
-	local espGui = Instance.new("BillboardGui")
-	espGui.Name = "ESP"
-	espGui.Size = UDim2.new(0, 100, 0, 40)
-	espGui.StudsOffset = Vector3.new(0, 3, 0)
-	espGui.AlwaysOnTop = true
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Text = target.Name
+    nameLabel.TextColor3 = espColor
+    nameLabel.TextSize = 18
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.Parent = billboard
 
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, 0, 1, 0)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-	nameLabel.TextStrokeTransparency = 0.5
-	nameLabel.Text = player.Name
-	nameLabel.TextScaled = true
-	nameLabel.Parent = espGui
-
-	local function onCharacterAdded(character)
-		repeat wait() until character:FindFirstChild("HumanoidRootPart")
-		espGui.Adornee = character:WaitForChild("HumanoidRootPart")
-		espGui.Parent = character
-	end
-
-	if player.Character then
-		onCharacterAdded(player.Character)
-	end
-
-	player.CharacterAdded:Connect(onCharacterAdded)
-	espBoxes[player] = espGui
+    target.CharacterAdded:Connect(function()
+        createESP(target)
+    end)
 end
 
--- Monitor players joining
-for _, player in ipairs(Players:GetPlayers()) do
-	createESP(player)
+Players.PlayerAdded:Connect(function(target)
+    target.CharacterAdded:Connect(function()
+        createESP(target)
+    end)
+end)
+
+for _, target in ipairs(Players:GetPlayers()) do
+    if target ~= player then
+        createESP(target)
+    end
 end
 
-Players.PlayerAdded:Connect(createESP)
-
--- Clean up ESP when players leave
-Players.PlayerRemoving:Connect(function(player)
-	if espBoxes[player] then
-		espBoxes[player]:Destroy()
-		espBoxes[player] = nil
-	end
+-- Auto-reopen on death
+player.CharacterAdded:Connect(function()
+    wait(1)
+    for _, target in ipairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            createESP(target)
+        end
+    end
 end)
