@@ -1,0 +1,64 @@
+local player = game:GetService("Players").LocalPlayer
+local noClipEnabled = false
+
+-- Function to create the NoClip GUI
+local function createNoClipGUI(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    -- GUI Setup
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "NoClipGUI"
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "NoClipToggle"
+    ToggleButton.Size = UDim2.new(0, 150, 0, 40)
+    ToggleButton.Position = UDim2.new(0, 10, 0, 60) -- Below Auto-Heal button
+    ToggleButton.Text = "NO CLIP: OFF"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.Font = Enum.Font.SourceSansBold
+    ToggleButton.TextSize = 16
+    ToggleButton.Parent = ScreenGui
+
+    -- Toggle Function
+    ToggleButton.MouseButton1Click:Connect(function()
+        noClipEnabled = not noClipEnabled
+        if noClipEnabled then
+            ToggleButton.Text = "NO CLIP: ON"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            -- Disable collision for all parts
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        else
+            ToggleButton.Text = "NO CLIP: OFF"
+            ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            -- Re-enable collision
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end)
+
+    -- Reset NoClip on death (prevents glitches)
+    humanoid.Died:Connect(function()
+        if noClipEnabled then
+            noClipEnabled = false
+            -- The GUI will be recreated automatically on respawn
+        end
+    end)
+end
+
+-- Initial setup (works on first spawn)
+local character = player.Character or player.CharacterAdded:Wait()
+createNoClipGUI(character)
+
+-- Recreate GUI on respawn
+player.CharacterAdded:Connect(function(newCharacter)
+    createNoClipGUI(newCharacter)
+end)
