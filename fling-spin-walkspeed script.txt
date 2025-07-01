@@ -1,0 +1,140 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Create main ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ThreeInOneGUI"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create main Frame to hold buttons
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 220, 0, 210)
+Frame.Position = UDim2.new(0.5, -110, 0.5, -105) -- center-ish
+Frame.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+Frame.Active = true
+Frame.Draggable = true
+
+-- Common function to create buttons
+local function createButton(text, positionY, width)
+    width = width or 160
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, width, 0, 50)
+    btn.Position = UDim2.new(0, 10, 0, positionY)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 22
+    btn.Text = text
+    btn.Parent = Frame
+    return btn
+end
+
+-- ====== Touch Fling Button =======
+local flingButton = createButton("Touch Fling: OFF", 10)
+local hiddenFling = false
+local flingThread = nil
+
+local function fling()
+    local lp = LocalPlayer
+    while hiddenFling do
+        RunService.Heartbeat:Wait()
+        local c = lp.Character
+        local hrp = c and c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local vel = hrp.Velocity
+            hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+            RunService.RenderStepped:Wait()
+            hrp.Velocity = vel
+            RunService.Stepped:Wait()
+            hrp.Velocity = vel + Vector3.new(0, 0.1, 0)
+        end
+    end
+end
+
+flingButton.MouseButton1Click:Connect(function()
+    hiddenFling = not hiddenFling
+    flingButton.Text = "Touch Fling: " .. (hiddenFling and "ON" or "OFF")
+    if hiddenFling then
+        flingThread = coroutine.create(fling)
+        coroutine.resume(flingThread)
+    end
+end)
+
+-- ====== Spin Self Button =======
+local spinButton = createButton("Spin Self: OFF", 70)
+local spinning = false
+local spinConnection = nil
+
+spinButton.MouseButton1Click:Connect(function()
+    spinning = not spinning
+    spinButton.Text = "Spin Self: " .. (spinning and "ON" or "OFF")
+
+    if spinning then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local HRP = LocalPlayer.Character.HumanoidRootPart
+            spinConnection = RunService.Heartbeat:Connect(function()
+                HRP.CFrame = HRP.CFrame * CFrame.Angles(0, math.rad(50), 0) -- very fast spin
+            end)
+        end
+    else
+        if spinConnection then
+            spinConnection:Disconnect()
+            spinConnection = nil
+        end
+    end
+end)
+
+-- ====== WalkSpeed Label =======
+local walkSpeedLabel = Instance.new("TextLabel")
+walkSpeedLabel.Size = UDim2.new(0, 160, 0, 30)
+walkSpeedLabel.Position = UDim2.new(0, 10, 0, 130)
+walkSpeedLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+walkSpeedLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+walkSpeedLabel.Font = Enum.Font.SourceSansBold
+walkSpeedLabel.TextSize = 20
+walkSpeedLabel.Text = "WalkSpeed: 16"
+walkSpeedLabel.Parent = Frame
+
+-- WalkSpeed adjust buttons
+local decreaseSpeedButton = createButton("-", 170, 70)
+local increaseSpeedButton = createButton("+", 170, 70)
+increaseSpeedButton.Position = UDim2.new(0, 100, 0, 170)
+
+local walkSpeed = 16
+local minSpeed = 1
+local maxSpeed = 100
+
+local function updateWalkSpeed(speed)
+    walkSpeed = math.clamp(speed, minSpeed, maxSpeed)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeed
+    end
+    walkSpeedLabel.Text = "WalkSpeed: " .. walkSpeed
+end
+
+decreaseSpeedButton.MouseButton1Click:Connect(function()
+    updateWalkSpeed(walkSpeed - 1)
+end)
+
+increaseSpeedButton.MouseButton1Click:Connect(function()
+    updateWalkSpeed(walkSpeed + 1)
+end)
+
+-- Reset walk speed on respawn and update label
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid").WalkSpeed = 16
+    walkSpeed = 16
+    walkSpeedLabel.Text = "WalkSpeed: 16"
+    
+    -- If spinning was on, re-enable spin after respawn
+    if spinning then
+        if spinConnection then spinConnection:Disconnect() end
+        local HRP = char:WaitForChild("HumanoidRootPart")
+        spinConnection = RunService.Heartbeat:Connect(function()
+            HRP.CFrame = HRP.CFrame * CFrame.Angles(0, math.rad(50), 0)
+        end)
+    end
+end)
