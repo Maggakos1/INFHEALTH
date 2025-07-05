@@ -1,0 +1,71 @@
+--// Aimbot Script with Toggle Button and Keybind (Y)
+--// NOTE: This script is for educational purposes only.
+--// Usage of aimbots in games may violate terms of service.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
+
+-- UI Button Setup
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+local ToggleButton = Instance.new("TextButton")
+
+ToggleButton.Size = UDim2.new(0, 150, 0, 40)
+ToggleButton.Position = UDim2.new(0.01, 0, 0.9, 0)
+ToggleButton.Text = "AIMBOT: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.Parent = ScreenGui
+ToggleButton.Active = true
+ToggleButton.Visible = true
+ToggleButton.Draggable = true
+
+local aimbotEnabled = false
+
+ToggleButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    ToggleButton.Text = aimbotEnabled and "AIMBOT: ON" or "AIMBOT: OFF"
+    ToggleButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(100, 100, 100)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Y then
+        aimbotEnabled = not aimbotEnabled
+        ToggleButton.Text = aimbotEnabled and "AIMBOT: ON" or "AIMBOT: OFF"
+        ToggleButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(100, 100, 100)
+    end
+end)
+
+-- Aimbot Logic
+local function getClosestEnemyToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPoint, onScreen = Camera:WorldToScreenPoint(head.Position)
+            if onScreen then
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = getClosestEnemyToCursor()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
