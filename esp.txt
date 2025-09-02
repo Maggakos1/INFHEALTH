@@ -1,8 +1,8 @@
--- Roblox ESP Script with Player Names and Health (Auto-Reopen on Death)
+-- Roblox ESP Script with Player Names and Health Color (Auto-Reopen on Death)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local espColor = Color3.new(1, 0, 0) -- Red
+local espColor = Color3.new(1, 0, 0) -- Red for highlight
 
 local function createESP(target)
     if not target.Character then return end
@@ -24,7 +24,7 @@ local function createESP(target)
 
     -- Health label (above the name)
     local healthLabel = Instance.new("TextLabel")
-    healthLabel.TextColor3 = espColor
+    healthLabel.TextColor3 = Color3.new(0, 1, 0) -- Start green
     healthLabel.TextSize = 16
     healthLabel.Font = Enum.Font.SourceSansBold
     healthLabel.BackgroundTransparency = 1
@@ -46,7 +46,17 @@ local function createESP(target)
     -- Update loop for health
     RunService.RenderStepped:Connect(function()
         if target.Character and target.Character:FindFirstChild("Humanoid") then
-            healthLabel.Text = "Health: " .. math.floor(target.Character.Humanoid.Health)
+            local humanoid = target.Character.Humanoid
+            healthLabel.Text = "Health: " .. math.floor(humanoid.Health)
+            -- Color gradient: green (high) -> yellow (medium) -> red (low)
+            local healthRatio = humanoid.Health / humanoid.MaxHealth
+            if healthRatio > 0.5 then
+                healthLabel.TextColor3 = Color3.new(0, 1, 0)
+            elseif healthRatio > 0.2 then
+                healthLabel.TextColor3 = Color3.new(1, 1, 0)
+            else
+                healthLabel.TextColor3 = Color3.new(1, 0, 0)
+            end
         end
     end)
 
